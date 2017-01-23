@@ -4,6 +4,26 @@ from scipy import linalg
 
 from RingBuffer.ringBuffer import *
 
+
+
+@coroutine
+def h5readTestMfcc():
+
+
+@coroutine
+def calculR(next, millis):
+    input = yield #received Flow value
+    size = len(input.data)
+    g1 = GaussianModel(input.data[:size/2])
+    g2 = GaussianModel(input.data[size/2:])
+
+
+@coroutine
+def trace():
+
+
+
+
 class GaussianModel :
     def __init__(self, data):
         self.data = data
@@ -36,9 +56,10 @@ def deltaBIC(x1, x2):
     data = np.concatenate((x1.data, x2.data), axis=0)
     print("concat ", data)
 
-
+"""
 data = np.array([[4,5,6],[77,-8,-85], [10,4,12], [13,-140,15], [16,107,-188]])
 x1 = GaussianModel(data)
 data = np.array([[4,55,6],[7,8,65], [-10,11,-54], [13,14,15], [-146,17,18]])
 x2 = GaussianModel(data)
 genR(x1, x2)
+"""
