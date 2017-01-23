@@ -7,13 +7,14 @@ from RingBuffer.ringBuffer import *
 
 
 @coroutine
-def h5readTestMfcc():
+def h5readTestMfcc(next):
     (yield)
 
     with h5py.File("BFMTV_CultureEtVous_2012-11-16_064700.h5", "r") as fh:
         data = fh.get("cep").value
         energy = fh.get("energy").value
         label = fh.get("vad").value
+
     flow = Flow(data, energy, label)
     next.send(flow)
 
@@ -62,6 +63,17 @@ def genR(x1, x2):
 def deltaBIC(x1, x2):
     data = np.concatenate((x1.data, x2.data), axis=0)
     print("concat ", data)
+
+
+output = trace()
+r = calculR(output, 10)
+buf = ring_buffer(r, 4, 2)
+source = h5readTestMfcc(buf)
+try :
+    next(source)
+except StopIteration :
+    print("That's all folks")
+
 
 """
 data = np.array([[4,5,6],[77,-8,-85], [10,4,12], [13,-140,15], [16,107,-188]])
