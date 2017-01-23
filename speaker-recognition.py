@@ -1,5 +1,4 @@
 import numpy as np
-from scipy import linalg
 import h5py
 import matplotlib
 
@@ -15,7 +14,10 @@ def h5readTestMfcc(next):
         energy = fh.get("energy").value
         label = fh.get("vad").value
 
-    flow = Flow(data, energy, label)
+    print("YEHE")
+    print type(data)
+    flow = Flow(np.array(data), np.array(energy), np.array(label))
+    print type(flow.data)
     next.send(flow)
 
 @coroutine
@@ -26,6 +28,8 @@ def calculR(next, millis):
             input = yield #received Flow value
 
             size = len(input.data)
+            print type(input.data)
+            print type(input.data[:size/2])
             g1 = GaussianModel(input.data[:size/2])
             g2 = GaussianModel(input.data[size/2:])
             R = genR()
@@ -40,17 +44,11 @@ def trace(millis):
     buf = [None]*(10)
     while(True):
         input = yield
-        if(cpt = 9):
+        if(cpt == 9):
             buf[cpt] = input
             cpt = 0
             print buf
-        cpt ++
-
-
-
-
-
-
+        cpt += 1
 
 
 class GaussianModel :
@@ -63,11 +61,17 @@ class GaussianModel :
 
     def populate(self):
         #mean of data
-        self.mean = data.mean(axis = 0)
+        print "POPULATE"
+        print type(self.data)
+        print "POPULATE"
+        self.mean = self.data.mean(axis = 0)
         #covariance
-        self.cov = np.cov(data)
+        print "data"
+        print(self.data)
+        self.cov = np.cov(self.data)
         #determinant
-        self.det = linalg.det(self.cov)
+        print(self.cov)
+        self.det = np.linalg.det(self.cov)
         print("det ", self.det)
 
 #equ. 2.30
@@ -86,7 +90,7 @@ def deltaBIC(x1, x2):
     print("concat ", data)
 
 
-output = trace()
+output = trace(10)
 r = calculR(output, 10)
 buf = ring_buffer(r, 4, 2)
 source = h5readTestMfcc(buf)
