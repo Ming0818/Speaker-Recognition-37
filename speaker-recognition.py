@@ -1,14 +1,21 @@
-
 import numpy as np
 from scipy import linalg
+import h5py
+import matplotlib
 
 from RingBuffer.ringBuffer import *
 
 
-
 @coroutine
 def h5readTestMfcc():
+    (yield)
 
+    with h5py.File("BFMTV_CultureEtVous_2012-11-16_064700.h5", "r") as fh:
+        data = fh.get("cep").value
+        energy = fh.get("energy").value
+        label = fh.get("vad").value
+    flow = Flow(data, energy, label)
+    next.send(flow)
 
 @coroutine
 def calculR(next, millis):
