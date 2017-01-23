@@ -20,14 +20,35 @@ def h5readTestMfcc(next):
 
 @coroutine
 def calculR(next, millis):
-    input = yield #received Flow value
-    size = len(input.data)
-    g1 = GaussianModel(input.data[:size/2])
-    g2 = GaussianModel(input.data[size/2:])
+    try:
+        time = 0 #timestamp of current packet treated
+        while(True):
+            input = yield #received Flow value
+
+            size = len(input.data)
+            g1 = GaussianModel(input.data[:size/2])
+            g2 = GaussianModel(input.data[size/2:])
+            R = genR()
+            next.send(R)
+    except GeneratorExit:
+        next.close()
 
 
 @coroutine
-def trace():
+def trace(millis):
+    cpt = 0
+    buf = [None]*(10)
+    while(True):
+        input = yield
+        if(cpt = 9):
+            buf[cpt] = input
+            cpt = 0
+            print buf
+        cpt ++
+
+
+
+
 
 
 
