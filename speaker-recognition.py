@@ -7,18 +7,17 @@ from RingBuffer.ringBuffer import *
 
 @coroutine
 def h5readTestMfcc(next):
-    (yield)
+    try:
+        (yield)
+        with h5py.File("BFMTV_CultureEtVous_2012-11-16_064700.h5", "r") as fh:
+            data = fh.get("cep").value
+            energy = fh.get("energy").value
+            label = fh.get("vad").value
 
-    with h5py.File("BFMTV_CultureEtVous_2012-11-16_064700.h5", "r") as fh:
-        data = fh.get("cep").value
-        energy = fh.get("energy").value
-        label = fh.get("vad").value
-
-    print("YEHE")
-    print type(data)
-    flow = Flow(np.array(data), np.array(energy), np.array(label))
-    print type(flow.data)
-    next.send(flow)
+        flow = Flow(np.array(data), np.array(energy), np.array(label))
+        next.send(flow)
+    except GeneratorExit:
+        next.close()
 
 @coroutine
 def calculR(next, millis):
@@ -28,11 +27,11 @@ def calculR(next, millis):
             input = yield #received Flow value
 
             size = len(input.data)
-            print type(input.data)
-            print type(input.data[:size/2])
             g1 = GaussianModel(input.data[:size/2])
             g2 = GaussianModel(input.data[size/2:])
-            R = genR()
+            g = GaussianModel(input.data)
+            R = genR(g1, g2, g)
+            #print(R)
             next.send(R)
     except GeneratorExit:
         next.close()
@@ -40,50 +39,57 @@ def calculR(next, millis):
 
 @coroutine
 def trace(millis):
-    cpt = 0
-    buf = [None]*(10)
-    while(True):
-        input = yield
-        if(cpt == 9):
+    try:
+        cpt = 0
+        buf = [None]*(10)
+        while(True):
+            input = yield
             buf[cpt] = input
-            cpt = 0
-            print buf
-        cpt += 1
+            cpt += 1
+            if(cpt == 10):
+                cpt = 0
+                print buf
+    except GeneratorExit:
+        next.close()
 
 
 class GaussianModel :
     def __init__(self, data):
-        self.data = data
+        if not isinstance(data, np.ndarray):
+            self.data = np.array(data)
+        else:
+            self.data = data
         self.mean = None
         self.cov = None
-        self.det = None
+        self.logdet = None
         self.populate()
 
     def populate(self):
         #mean of data
-        print "POPULATE"
-        print type(self.data)
-        print "POPULATE"
         self.mean = self.data.mean(axis = 0)
+        #print "DATA:"
+        #print(self.data)
         #covariance
-        print "data"
-        print(self.data)
         self.cov = np.cov(self.data)
+        #print("COV:")
+        #print(self.cov)
         #determinant
-        print(self.cov)
-        self.det = np.linalg.det(self.cov)
-        print("det ", self.det)
+        (sign, self.logdet) = np.linalg.slogdet(self.cov)
+        #print("DET:", self.det)
 
 #equ. 2.30
-def genR(x1, x2):
+def genR(x1, x2, x0):
+    """
     data = np.concatenate((x1.data, x2.data), axis=0)
     print("concat ", data)
     x0 = GaussianModel([x1.data, x2.data])
     print("Gaussian ", x0)
-    GLR = ((len(x0.data)/2) * np.log10(x0.det)) - (((len(x1.data)/2) * np.log10(x1.det)) + ((len(x2.data)/2) * np.log10(x2.det)))
-    print("GLR ", GLR)
+    """
+    GLR = ((len(x0.data)/2) * x0.logdet) - (((len(x1.data)/2) * x1.logdet) + ((len(x2.data)/2) * x2.logdet))
+    #print("GLR ", GLR)
     R = np.exp(-np.log(10) * GLR)
-    print("R ", R)
+    #print("R ", R)
+    return R
 
 def deltaBIC(x1, x2):
     data = np.concatenate((x1.data, x2.data), axis=0)
