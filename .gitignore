@@ -1,3 +1,5 @@
 *.pyc
 *.ipynb
 *.wav
+remove_output.py
+
