@@ -1,6 +1,7 @@
 import numpy as np
 import h5py
-import matplotlib
+#import matplotlib
+import matplotlib.pyplot as plt
 
 from RingBuffer.ringBuffer import *
 
@@ -38,17 +39,32 @@ def calculR(next, millis):
 
 
 @coroutine
-def trace(millis):
+#Take initial time and the windows of time
+def trace(time, millis):
     try:
+        value = 25000
         cpt = 0
-        buf = [None]*(10)
-        while(True):
+        x = [None]*value
+        y = [None]*value
+        #buf = {}
+        #while(True):
+        while(cpt < value):
             input = yield
-            buf[cpt] = input
+            #reducing the highest values
+            if (input > 10000000000):
+                input = 10000000000
+            x[cpt] = time
+            y[cpt] = input
             cpt += 1
-            if(cpt == 10):
-                cpt = 0
-                print buf
+            time += millis
+        if (cpt == value):
+            #print ("Y")
+            #print y
+            #print("X")
+            #print x
+            plt.plot(x, y)
+            plt.show()
+            cpt +=1
     except GeneratorExit:
         next.close()
 
@@ -93,10 +109,10 @@ def genR(x1, x2, x0):
 
 def deltaBIC(x1, x2):
     data = np.concatenate((x1.data, x2.data), axis=0)
-    print("concat ", data)
+    #print("concat ", data)
 
 
-output = trace(10)
+output = trace(25, 10)
 r = calculR(output, 10)
 buf = ring_buffer(r, 4, 2)
 source = h5readTestMfcc(buf)
