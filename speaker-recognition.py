@@ -48,25 +48,50 @@ def trace(time, millis):
         y = [None]*value
         #buf = {}
         #while(True):
+
         while(cpt < value):
             input = yield
             #reducing the highest values
-            if (input > 10000000000):
-                input = 10000000000
+            if (input > pow(10, 10)):
+                input = pow(10, 10)
             x[cpt] = time
             y[cpt] = input
             cpt += 1
             time += millis
+        #after loop
         if (cpt == value):
-            #print ("Y")
-            #print y
-            #print("X")
-            #print x
             plt.plot(x, y)
             plt.show()
             cpt +=1
     except GeneratorExit:
         next.close()
+
+@coroutine
+#Take initial time and the windows of time
+def detect(time, millis):
+    try:
+        value = 25000
+        cpt = 0
+        x = [None]*value
+        y = [None]*value
+        #buf = {}
+        #while(True):
+
+        while(True):
+            input = yield
+            #reducing the highest values
+
+            sec = "%02d" % ((time//1000)%60)
+
+            if (input > pow(10, 10)):
+                input = pow(10, 10)
+            if(input > pow(10, 10)-1):
+                print("R: {}m{} : {}".format( (time//60000), sec, input) )
+            cpt += 1
+            time += millis
+    except GeneratorExit:
+        next.close()
+
 
 
 class GaussianModel :
@@ -112,7 +137,7 @@ def deltaBIC(x1, x2):
     #print("concat ", data)
 
 
-output = trace(15, 20)
+output = trace(25, 10) #trace or detect
 r = calculR(output, 10)
 buf = ring_buffer(r, 4, 2)
 source = h5readTestMfcc(buf)
