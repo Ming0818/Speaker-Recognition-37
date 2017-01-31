@@ -112,7 +112,7 @@ def deltaBIC(x1, x2):
     #print("concat ", data)
 
 
-output = trace(25, 10)
+output = trace(15, 20)
 r = calculR(output, 10)
 buf = ring_buffer(r, 4, 2)
 source = h5readTestMfcc(buf)
