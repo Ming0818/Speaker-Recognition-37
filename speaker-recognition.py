@@ -28,8 +28,8 @@ def calculR(next, millis):
             input = yield #received Flow value
 
             size = len(input.data)
-            g1 = GaussianModel(input.data[:size/2])
-            g2 = GaussianModel(input.data[size/2:])
+            g1 = GaussianModel(input.data[:size//2])
+            g2 = GaussianModel(input.data[size//2:])
             g = GaussianModel(input.data)
             R = genR(g1, g2, g)
             #print(R)
