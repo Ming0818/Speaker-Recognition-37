@@ -1,0 +1,6 @@
+[submodule "RingBuffer-generic"]
+	path = RingBuffer-generic
+	url = git@github.com:RichMeetingTranscription/RingBuffer-generic.git
+[submodule "RingBufferGeneric"]
+	path = RingBufferGeneric
+	url = git@github.com:RichMeetingTranscription/RingBufferGeneric.git

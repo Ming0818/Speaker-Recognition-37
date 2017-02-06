@@ -5,7 +5,10 @@ import h5py
 #import matplotlib
 import matplotlib.pyplot as plt
 
-from RingBuffer.ringBuffer import *
+from RingBuffer.ringBuffer import coroutine
+from RingBuffer.ringBuffer import Flow
+from RingBuffer.ringBuffer import ring_buffer as ringBufferFlow
+from RingBufferGeneric.ringBuffer import ring_buffer as ringBufferGeneric
 
 
 @coroutine
@@ -39,34 +42,43 @@ def calculR(next, millis):
     except GeneratorExit:
         next.close()
 
+@coroutine
+def minimumLocaux(next):
+    pass
 
-#Take initial time and the windows of time
+
+#Take initial time, time offset between values and the size fo window to plot
 @coroutine
 def trace(starttime_ms, gap_ms, window_ms):
-    try:
-        value = window_ms // gap_ms
-        time = starttime_ms
-        cpt = 0
-        x = [None]*value
-        y = [None]*value
-        #buf = {}
-        #while(True):
+    plot = plt
+    value = window_ms // gap_ms
+    time = starttime_ms
+    cpt = 0
+    x = [0]*value
+    y = [0]*value
 
-        while(cpt < value):
+    try:
+        while(True):
             input = yield
-            #reducing the highest values
-            if (input > pow(10, 10)):
-                input = pow(10, 10)
             x[cpt] = time
             y[cpt] = input
             cpt += 1
             time += gap_ms
-        #after loop
-        if (cpt == value):
-            plt.plot(x, y)
-            plt.show()
-            cpt +=1
+            #print plot
+            if (cpt == value):
+                plt.plot(x, y)
+                plt.show()
+                cpt = 0
+                x = [0]*value
+                y = [0]*value
+
+            #print process indicator every second
+            if(time % 1000 < gap_ms):
+                print "Processing: {}ms".format(time)
+
     except GeneratorExit:
+        plot.plot(x, y)
+        plot.show()
         pass
 
 @coroutine
@@ -87,7 +99,6 @@ def detect(starttime_ms, gap_ms, window_ms):
             sec = "%02d" % ((time//1000)%60) #current time in seconds
 
             if (input > limit):
-                input = limit
                 print("R: {}m{} : {}".format( (time//60000), sec, input) )
             cpt += 1
             time += gap_ms
@@ -142,14 +153,14 @@ def deltaBIC(x1, x2):
     #print("concat ", data)
 
 
-nb_ech = 250 #nombre de mfcc de chaque côté
-mfcc_skip = 1 #décalage dans le buffer circulaire entre chaque série de mfcc
+nb_ech = 250 #nombre de mfcc de chaque côté #default 250
+step_ech = 1 #décalage dans le buffer circulaire entre chaque série de mfcc #default 1
 gap_ms = 10 #temps entre chaque mffc
-window_calcul = 60000 #temps à traiter en ms
+window_calcul = 10000 #temps à traiter en ms #593000
 
-output = trace(nb_ech*gap_ms+gap_ms, gap_ms*mfcc_skip, window_calcul) #trace or detect
+output = trace(nb_ech*gap_ms+gap_ms, gap_ms*step_ech, window_calcul) #trace or detect
 r = calculR(output, gap_ms)
-buf = ring_buffer(r, nb_ech*2, nb_ech*2 - mfcc_skip)
+buf = ringBufferFlow(r, nb_ech*2, nb_ech*2 - step_ech)
 source = h5readTestMfcc(buf)
 try :
     next(source)
