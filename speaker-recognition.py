@@ -38,11 +38,12 @@ def calculR(next, millis):
         next.close()
 
 
-@coroutine
 #Take initial time and the windows of time
-def trace(time, millis):
+@coroutine
+def trace(starttime_ms, gap_ms, window_ms):
     try:
-        value = 25000
+        value = window_ms // gap_ms
+        time = starttime_ms
         cpt = 0
         x = [None]*value
         y = [None]*value
@@ -57,23 +58,23 @@ def trace(time, millis):
             x[cpt] = time
             y[cpt] = input
             cpt += 1
-            time += millis
+            time += gap_ms
         #after loop
         if (cpt == value):
             plt.plot(x, y)
             plt.show()
             cpt +=1
     except GeneratorExit:
-        next.close()
+        pass
 
 @coroutine
 #Take initial time and the windows of time
-def detect(time, millis):
+def detect(starttime_ms, gap_ms, window_ms):
     try:
-        value = 25000
+        value = window_ms // gap_ms
+        time = starttime_ms
+        limit = pow(10, 10)
         cpt = 0
-        x = [None]*value
-        y = [None]*value
         #buf = {}
         #while(True):
 
@@ -81,16 +82,18 @@ def detect(time, millis):
             input = yield
             #reducing the highest values
 
-            sec = "%02d" % ((time//1000)%60)
+            sec = "%02d" % ((time//1000)%60) #current time in seconds
 
-            if (input > pow(10, 10)):
-                input = pow(10, 10)
-            if(input > pow(10, 10)-1):
+            if (input > limit):
+                input = limit
                 print("R: {}m{} : {}".format( (time//60000), sec, input) )
             cpt += 1
-            time += millis
+            time += gap_ms
+
+            if(window_ms + starttime_ms <= time):
+                break
     except GeneratorExit:
-        next.close()
+        pass
 
 
 
@@ -127,19 +130,23 @@ def genR(x1, x2, x0):
     print("Gaussian ", x0)
     """
     GLR = ((len(x0.data)/2) * x0.logdet) - (((len(x1.data)/2) * x1.logdet) + ((len(x2.data)/2) * x2.logdet))
-    #print("GLR ", GLR)
-    R = np.exp(-np.log(10) * GLR)
+    #print("GLR: ", GLR)
+    #R = np.exp(-np.log(10) * GLR)
     #print("R ", R)
-    return R
+    return GLR
 
 def deltaBIC(x1, x2):
     data = np.concatenate((x1.data, x2.data), axis=0)
     #print("concat ", data)
 
 
-output = trace(25, 10) #trace or detect
-r = calculR(output, 10)
-buf = ring_buffer(r, 4, 2)
+nb_ech = 250
+gap_ms = 10
+window_calcul = 60000 #en ms
+
+output = trace(nb_ech*gap_ms+gap_ms, gap_ms, window_calcul) #trace or detect
+r = calculR(output, gap_ms)
+buf = ring_buffer(r, nb_ech*2, nb_ech*2-1)
 source = h5readTestMfcc(buf)
 try :
     next(source)
