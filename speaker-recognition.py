@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import h5py
 #import matplotlib
@@ -140,13 +142,14 @@ def deltaBIC(x1, x2):
     #print("concat ", data)
 
 
-nb_ech = 250
-gap_ms = 10
-window_calcul = 60000 #en ms
+nb_ech = 250 #nombre de mfcc de chaque côté
+mfcc_skip = 1 #décalage dans le buffer circulaire entre chaque série de mfcc
+gap_ms = 10 #temps entre chaque mffc
+window_calcul = 60000 #temps à traiter en ms
 
-output = trace(nb_ech*gap_ms+gap_ms, gap_ms, window_calcul) #trace or detect
+output = trace(nb_ech*gap_ms+gap_ms, gap_ms*mfcc_skip, window_calcul) #trace or detect
 r = calculR(output, gap_ms)
-buf = ring_buffer(r, nb_ech*2, nb_ech*2-1)
+buf = ring_buffer(r, nb_ech*2, nb_ech*2 - mfcc_skip)
 source = h5readTestMfcc(buf)
 try :
     next(source)
