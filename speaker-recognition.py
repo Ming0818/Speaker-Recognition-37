@@ -20,13 +20,19 @@ def h5readTestMfcc(next):
             energy = fh.get("energy").value
             label = fh.get("vad").value
 
-        flow = Flow(np.array(data), np.array(energy), np.array(label))
+        #keep 12 first mfcc out of 19
+        a = np.array(data)
+        b = np.zeros((len(a), 12))
+        for i in range(len(a)):
+            b[i] = a[i][:12]
+
+        flow = Flow(np.array(b), np.array(energy), np.array(label))
         next.send(flow)
     except GeneratorExit:
         next.close()
 
 @coroutine
-def calculR(next, millis):
+def calculR(next, millis, trace_ouput=None):
     try:
         time = 0 #timestamp of current packet treated
         while(True):
@@ -39,13 +45,55 @@ def calculR(next, millis):
             R = genR(g1, g2, g)
             #print(R)
             next.send(R)
+            if(trace_ouput is not None):
+                trace_ouput.send(R)
     except GeneratorExit:
         next.close()
 
 @coroutine
-def minimumLocaux(next):
-    pass
+def minimumLocaux(starttime_ms, gap_ms):
+    firstVal = True
+    minIndex = 0
+    minVal = 0
+    index = 0
+    time = starttime_ms
+    minlocs = dict()
 
+    try:
+        input = yield
+        #recherche du premier minimum local
+        for i in range(len(input)):
+            if(input[i] < minVal or firstVal):
+                firstVal = False
+                minVal = input[i]
+                minIndex = i + index
+        minlocs[minIndex] = (starttime_ms + (minIndex*gap_ms), minVal) #on stocke dans le dictionnaire un couple temps / valeur
+        print("First minloc : {}".format(minlocs[minIndex]))
+
+        while(True):
+            index = index + 1
+            input = yield
+
+            #Si la plus petite valeur sort du champs, on en cherche une nouvelle
+            if(minIndex < index):
+                firstVal = True #la première valeur n'aura pas à être comparé
+                print("Last value has rolled out")
+                for i in range(len(input)):
+                    if(input[i] < minVal or firstVal):
+                        minVal = input[i]
+                        minIndex = i + index
+                        firstVal = False
+            else: #sinon on regarde si la nouvelle valeur est plus petite que celle enregistrée
+                if input[-1] < minVal:
+                    minVal = input[-1]
+                    minIndex = len(input)-1 + index
+
+            if not (minIndex in minlocs.keys()):
+                minlocs[minIndex] = (starttime_ms + (minIndex*gap_ms), minVal) #on stocke dans le dictionnaire un couple temps / valeur
+                print("New minloc : {}".format(minlocs[minIndex]))
+    except GeneratorExit:
+        print minlocs
+        pass
 
 #Take initial time, time offset between values and the size fo window to plot
 @coroutine
@@ -74,9 +122,10 @@ def trace(starttime_ms, gap_ms, window_ms):
 
             #print process indicator every second
             if(time % 1000 < gap_ms):
-                print "Processing: {}ms".format(time)
+                print("Processing: {}ms".format(time))
 
     except GeneratorExit:
+        #print(x, y)
         plot.plot(x, y)
         plot.show()
         pass
@@ -158,8 +207,12 @@ step_ech = 1 #décalage dans le buffer circulaire entre chaque série de mfcc #d
 gap_ms = 10 #temps entre chaque mffc
 window_calcul = 10000 #temps à traiter en ms #593000
 
-output = trace(nb_ech*gap_ms+gap_ms, gap_ms*step_ech, window_calcul) #trace or detect
-r = calculR(output, gap_ms)
+time_minloc = 10000; #taille de la fenêtre pour les minimums locaux en ms
+
+trace_output = trace(nb_ech*gap_ms+gap_ms, gap_ms*step_ech, window_calcul) #trace or detect
+minloc = minimumLocaux(nb_ech*gap_ms, gap_ms*step_ech)
+rbuf = ringBufferGeneric(minloc, time_minloc//(gap_ms//step_ech), time_minloc//(gap_ms//step_ech) - 1)
+r = calculR(rbuf, gap_ms, trace_output)
 buf = ringBufferFlow(r, nb_ech*2, nb_ech*2 - step_ech)
 source = h5readTestMfcc(buf)
 try :
