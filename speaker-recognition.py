@@ -213,7 +213,7 @@ trace_output = trace(nb_ech*gap_ms+gap_ms, gap_ms*step_ech, window_calcul) #trac
 minloc = minimumLocaux(nb_ech*gap_ms, gap_ms*step_ech)
 rbuf = ringBufferGeneric(minloc, time_minloc//(gap_ms//step_ech), time_minloc//(gap_ms//step_ech) - 1)
 r = calculR(rbuf, gap_ms, trace_output)
-buf = ringBufferFlow(r, nb_ech*2, nb_ech*2 - step_ech)
+buf = ringBufferFlow(r, nb_ech*2, nb_ech*2 - step_ech, 12)
 source = h5readTestMfcc(buf)
 try :
     next(source)
